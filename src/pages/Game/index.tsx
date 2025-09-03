@@ -5,16 +5,81 @@ import { rpc } from '@app/rpc';
 import { IGame } from '@app/rpc-types/authenticated/game/types';
 import { ArrowBackRounded } from '@mui/icons-material';
 import { Box, Button, CircularProgress, Paper, Stack, Typography } from '@mui/material';
-import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
-import { FC } from 'react';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { FC, useEffect, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { GAME_ID_PARAM } from './constants';
 import gooseImg from './goose.png';
 
+const StatusTitle: Record<IGame['status'], string> = {
+  'completed': 'Completed',
+  'cooldown': 'Cooldown, prepare yourself!',
+  'in-progress': 'Tap tap tap!!!',
+};
+const getGameQueryKey = (id: string) => ['rpc.authenticated.game', id];
+
+const calculateDiff = (timestamp: number) => {
+  const currentTime = Date.now();
+  const diff = timestamp - currentTime;
+  return diff > 0 ? Math.floor(diff / 1000) : 0;
+};
+const Timer: FC<{ timestamp: number }> = ({ timestamp }) => {
+  const [secondsLeft, setSecondsLeft] = useState(() => calculateDiff(timestamp));
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setSecondsLeft(calculateDiff(timestamp));
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [timestamp]);
+  return secondsLeft;
+};
+
 export const GameInner: FC<{
   game: IGame;
-}> = ({ game }) => {
+  gameUpdatedTs: number;
+}> = ({ game, gameUpdatedTs }) => {
   const id = game.id;
+
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const currentTime = Date.now();
+    const endTime = new Date(game.endAt).getTime();
+    if (currentTime >= endTime) return;
+    const startUpdateInterval = window.setInterval(() => {
+      const currentTime = Date.now();
+      const startTime = new Date(game.startAt).getTime();
+      if (gameUpdatedTs >= startTime) {
+        window.clearInterval(startUpdateInterval);
+        return;
+      }
+      if (currentTime >= startTime) {
+        queryClient.refetchQueries({
+          queryKey: getGameQueryKey(id),
+          type: 'active',
+        });
+      }
+    }, 500);
+    const endUpdateInterval = window.setInterval(() => {
+      const currentTime = Date.now();
+      const endTime = new Date(game.endAt).getTime();
+      if (gameUpdatedTs >= endTime) {
+        window.clearInterval(startUpdateInterval);
+        return;
+      }
+      if (currentTime >= endTime) {
+        queryClient.refetchQueries({
+          queryKey: getGameQueryKey(id),
+          type: 'active',
+        });
+      }
+    }, 500);
+
+    return () => {
+      window.clearInterval(startUpdateInterval);
+      window.clearInterval(endUpdateInterval);
+    };
+  }, [game, id, gameUpdatedTs, queryClient.refetchQueries]);
 
   const createTapMutation = useMutation({
     mutationFn: () => rpc.authenticated.createTap({ gameId: id }),
@@ -61,20 +126,33 @@ export const GameInner: FC<{
             <Typography variant="h1">Tap the goose!</Typography>
           </Stack>
 
-          <Stack justifyContent="center" alignItems="center">
-            <Box
-              onClick={() => createTapMutation.mutate()}
-              sx={{
-                cursor: 'pointer',
-                userSelect: 'none',
-                '&:active': {
-                  transform: 'rotate(-20deg)',
-                },
-              }}
-            >
-              <img src={gooseImg} width={255} height={366} style={{ userSelect: 'none' }} />
-            </Box>
-          </Stack>
+          <Typography>Status: {StatusTitle[game.status]}</Typography>
+          {game.status === 'cooldown' && (
+            <Typography>
+              Seconds to start: <Timer timestamp={new Date(game.startAt).getTime()} />. Wait for the goose to appear..
+            </Typography>
+          )}
+          {game.status === 'in-progress' && (
+            <Typography>
+              Seconds to end: <Timer timestamp={new Date(game.endAt).getTime()} />. Tap faster!
+            </Typography>
+          )}
+          {game.status === 'in-progress' && (
+            <Stack justifyContent="center" alignItems="center">
+              <Box
+                onClick={() => createTapMutation.mutate()}
+                sx={{
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  '&:active': {
+                    transform: 'rotate(-20deg)',
+                  },
+                }}
+              >
+                <img src={gooseImg} width={255} height={366} style={{ userSelect: 'none' }} />
+              </Box>
+            </Stack>
+          )}
         </Stack>
       </Paper>
     </Stack>
@@ -85,11 +163,10 @@ export const Game: FC = () => {
   const { id } = useParams() as { [GAME_ID_PARAM]: string };
 
   const gameQuery = useQuery({
-    queryKey: ['rpc.authenticated.game', id],
+    queryKey: getGameQueryKey(id),
     queryFn: () => rpc.authenticated.game({ gameId: id }),
     placeholderData: keepPreviousData,
   });
-
   const gameData = gameQuery.data?.status === 'authorized' ? gameQuery.data.data : null;
   if (!gameData)
     return (
@@ -103,7 +180,7 @@ export const Game: FC = () => {
 
   return (
     <PageMain>
-      <GameInner game={gameData.game} />
+      <GameInner game={gameData.game} gameUpdatedTs={gameQuery.dataUpdatedAt} />
     </PageMain>
   );
 };

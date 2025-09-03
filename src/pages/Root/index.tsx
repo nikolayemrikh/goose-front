@@ -2,17 +2,25 @@ import { routes } from '@app/Routes/routes';
 import { PageMain } from '@app/components/PageMain';
 import { authClient } from '@app/core/auth';
 import { rpc } from '@app/rpc';
+import { IGame } from '@app/rpc-types/authenticated/games/types';
 import { Button, Card, CircularProgress, Grid, Paper, Stack, Typography } from '@mui/material';
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { FC } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+const StatusTitle: Record<IGame['status'], string> = {
+  'completed': 'Completed',
+  'cooldown': 'Cooldown',
+  'in-progress': 'In progress',
+};
+const gamesParams: Parameters<typeof rpc.authenticated.games>[0] = { orderBy: { startAt: 'desc' } };
+
 export const Root: FC = () => {
   const navigate = useNavigate();
 
   const gamesQuery = useQuery({
-    queryKey: ['rpc.authenticated.games'],
-    queryFn: () => rpc.authenticated.games(),
+    queryKey: ['rpc.authenticated.games', gamesParams],
+    queryFn: () => rpc.authenticated.games(gamesParams),
     placeholderData: keepPreviousData,
   });
 
@@ -121,7 +129,7 @@ export const Root: FC = () => {
                           >
                             Start at
                           </Typography>
-                          <Typography>{new Date(game.startAt).toLocaleDateString()}</Typography>
+                          <Typography>{new Date(game.startAt).toLocaleString()}</Typography>
                         </Grid>
                         <Grid size={2}>
                           <Typography
@@ -133,7 +141,7 @@ export const Root: FC = () => {
                           >
                             End at
                           </Typography>
-                          <Typography>{new Date(game.endAt).toLocaleDateString()}</Typography>
+                          <Typography>{new Date(game.endAt).toLocaleString()}</Typography>
                         </Grid>
                         <Grid size={2}>
                           <Typography
@@ -145,7 +153,7 @@ export const Root: FC = () => {
                           >
                             Status
                           </Typography>
-                          <Typography>{game.status}</Typography>
+                          <Typography>{StatusTitle[game.status]}</Typography>
                         </Grid>
                         <Grid size={2}>
                           <Button component={Link} to={[routes.game, game.id].join('/')}>

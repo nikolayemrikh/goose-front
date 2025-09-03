@@ -21,13 +21,14 @@ export const App: FC = () => {
         <ThemeProvider>
           <CssBaseline enableColorScheme />
           <Stack height="100%" minWidth={MIN_WIDTH}>
-            {!isAuthPending && error ? (
-              error.message
-            ) : (
-              <BrowserRouter>
-                <Routes />
-              </BrowserRouter>
-            )}
+            {!isAuthPending &&
+              (error ? (
+                error.message
+              ) : (
+                <BrowserRouter>
+                  <Routes />
+                </BrowserRouter>
+              ))}
           </Stack>
         </ThemeProvider>
       </ThemeModeSettingContextProviderWrapper>
