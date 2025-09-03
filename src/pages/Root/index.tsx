@@ -4,7 +4,7 @@ import { rpc } from '@app/rpc';
 import { Button, Card, CircularProgress, Grid, Paper, Stack, Typography } from '@mui/material';
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { FC } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export const Root: FC = () => {
   const navigate = useNavigate();
@@ -70,15 +70,16 @@ export const Root: FC = () => {
                   <Grid size={4}>
                     <Typography>ID</Typography>
                   </Grid>
-                  <Grid size={3}>
+                  <Grid size={2}>
                     <Typography>Start at</Typography>
                   </Grid>
-                  <Grid size={3}>
+                  <Grid size={2}>
                     <Typography>End at</Typography>
                   </Grid>
                   <Grid size={2}>
                     <Typography>Status</Typography>
                   </Grid>
+                  <Grid size={2}></Grid>
                 </Grid>
                 {games.map((game) => {
                   return (
@@ -96,7 +97,7 @@ export const Root: FC = () => {
                           </Typography>
                           <Typography>{game.id.split('-')[0]}</Typography>
                         </Grid>
-                        <Grid size={3}>
+                        <Grid size={2}>
                           <Typography
                             sx={(t) => ({
                               [t.breakpoints.up('sm')]: {
@@ -108,7 +109,7 @@ export const Root: FC = () => {
                           </Typography>
                           <Typography>{new Date(game.startAt).toLocaleDateString()}</Typography>
                         </Grid>
-                        <Grid size={3}>
+                        <Grid size={2}>
                           <Typography
                             sx={(t) => ({
                               [t.breakpoints.up('sm')]: {
@@ -131,6 +132,11 @@ export const Root: FC = () => {
                             Status
                           </Typography>
                           <Typography>{game.status}</Typography>
+                        </Grid>
+                        <Grid size={2}>
+                          <Button component={Link} to={[routes.game, game.id].join('/')}>
+                            Enter
+                          </Button>
                         </Grid>
                       </Grid>
                     </Card>
