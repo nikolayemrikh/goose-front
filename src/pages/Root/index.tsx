@@ -1,5 +1,6 @@
 import { routes } from '@app/Routes/routes';
 import { PageMain } from '@app/components/PageMain';
+import { authClient } from '@app/core/auth';
 import { rpc } from '@app/rpc';
 import { Button, Card, CircularProgress, Grid, Paper, Stack, Typography } from '@mui/material';
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
@@ -13,6 +14,17 @@ export const Root: FC = () => {
     queryKey: ['rpc.authenticated.games'],
     queryFn: () => rpc.authenticated.games(),
     placeholderData: keepPreviousData,
+  });
+
+  const hasPermissionCreateGameQuery = useQuery({
+    queryKey: ['authClient.admin.hasPermission', 'create-game'],
+    queryFn: () =>
+      authClient.admin.hasPermission({
+        permissions: {
+          goose: ['create-game'],
+        },
+      }),
+    select: (res) => res.data?.success,
   });
 
   const gamesData = gamesQuery.data;
@@ -44,15 +56,17 @@ export const Root: FC = () => {
             >
               <Typography variant="h1">Tap the goose!</Typography>
 
-              <Button
-                type="button"
-                variant="contained"
-                onClick={() => {
-                  createGameMutation.mutate();
-                }}
-              >
-                Create a new game
-              </Button>
+              {hasPermissionCreateGameQuery.data && (
+                <Button
+                  type="button"
+                  variant="contained"
+                  onClick={() => {
+                    createGameMutation.mutate();
+                  }}
+                >
+                  Create a new game
+                </Button>
+              )}
             </Stack>
             <Typography variant="h3">Games</Typography>
 

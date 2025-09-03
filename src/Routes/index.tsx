@@ -10,11 +10,11 @@ import { GAME_ID_PARAM } from '@app/pages/Game/constants';
 import { Root } from '@app/pages/Root';
 import { routes } from './routes';
 
-const DetectRoute: FC = () => {
-  const { data: session } = authClient.useSession();
+// const DetectRoute: FC = () => {
+//   const { data: session } = authClient.useSession();
 
-  return session ? <Navigate to={routes.root} /> : <Navigate to={routes.login} />;
-};
+//   return session ? <Navigate to={routes.root} /> : <Navigate to={routes.login} />;
+// };
 
 const AuthRoute: FC = () => {
   const { data: session } = authClient.useSession();

@@ -14,14 +14,16 @@ import { MIN_WIDTH } from './core/theme/constants';
 const queryClient = new QueryClient();
 
 export const App: FC = () => {
-  const { isPending: isAuthPending } = authClient.useSession();
+  const { isPending: isAuthPending, error } = authClient.useSession();
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeModeSettingContextProviderWrapper>
         <ThemeProvider>
           <CssBaseline enableColorScheme />
           <Stack height="100%" minWidth={MIN_WIDTH}>
-            {!isAuthPending && (
+            {!isAuthPending && error ? (
+              error.message
+            ) : (
               <BrowserRouter>
                 <Routes />
               </BrowserRouter>
