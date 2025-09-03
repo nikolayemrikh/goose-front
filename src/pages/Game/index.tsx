@@ -1,6 +1,7 @@
 import { routes } from '@app/Routes/routes';
 import { PageMain } from '@app/components/PageMain';
 
+import { authClient } from '@app/core/auth';
 import { rpc } from '@app/rpc';
 import { IGame } from '@app/rpc-types/authenticated/game/types';
 import { ArrowBackRounded } from '@mui/icons-material';
@@ -40,6 +41,8 @@ export const GameInner: FC<{
   gameUpdatedTs: number;
 }> = ({ game, gameUpdatedTs }) => {
   const id = game.id;
+
+  const { data: session } = authClient.useSession();
 
   const gameSummaryQuery = useQuery({
     queryKey: ['rpc.authenticated.gameSummary', id],
@@ -144,6 +147,7 @@ export const GameInner: FC<{
               Back to games
             </Button>
             <Typography variant="h1">Tap the goose!</Typography>
+            <Typography variant="body1">User: {session?.user.name}</Typography>
           </Stack>
 
           <Typography>Status: {StatusTitle[game.status]}</Typography>
@@ -160,10 +164,14 @@ export const GameInner: FC<{
             </Typography>
           )}
 
-          <Typography>Total score: {gameSummaryQuery.data?.totalScore}</Typography>
-          <Typography>
-            Winner: {gameSummaryQuery.data?.winnerUsername || 'There is no winner, goose is alive...'}
-          </Typography>
+          {gameSummaryQuery.data && (
+            <>
+              <Typography>Total score: {gameSummaryQuery.data?.totalScore}</Typography>
+              <Typography>
+                Winner: {gameSummaryQuery.data?.winnerUsername || 'There is no winner, goose is alive...'}
+              </Typography>
+            </>
+          )}
           <Typography>Score: {ownScoreQuery.data?.score}</Typography>
 
           <Stack justifyContent="center" alignItems="center">
