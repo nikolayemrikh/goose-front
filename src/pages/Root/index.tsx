@@ -6,7 +6,7 @@ import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-export const PeerLobby: FC = () => {
+export const Root: FC = () => {
   const navigate = useNavigate();
 
   const gamesQuery = useQuery({

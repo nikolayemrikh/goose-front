@@ -2,12 +2,12 @@ import { FC } from 'react';
 
 import { Navigate, Outlet, Route, Routes as RouterRoutes } from 'react-router-dom';
 
-import { SignInPage } from '@app/Auth/SignInPage';
-import { SignUpPage } from '@app/Auth/SignUpPage';
-import { PeerLobby } from '@app/PeerLobby';
 import { authClient } from '@app/core/auth';
+import { SignInPage } from '@app/pages/Auth/SignInPage';
+import { SignUpPage } from '@app/pages/Auth/SignUpPage';
 import { Game } from '@app/pages/Game';
 import { GAME_ID_PARAM } from '@app/pages/Game/constants';
+import { Root } from '@app/pages/Root';
 import { routes } from './routes';
 
 const DetectRoute: FC = () => {
@@ -18,7 +18,6 @@ const DetectRoute: FC = () => {
 
 const AuthRoute: FC = () => {
   const { data: session } = authClient.useSession();
-  console.log(session);
 
   return session ? <Outlet /> : <Navigate to={routes.login} />;
 };
@@ -33,7 +32,7 @@ export const Routes: FC = () => {
   return (
     <RouterRoutes>
       <Route element={<AuthRoute />}>
-        <Route path={routes.root} element={<PeerLobby />} />
+        <Route path={routes.root} element={<Root />} />
         <Route path={routes.game + '/:' + GAME_ID_PARAM} element={<Game />} />
       </Route>
 
