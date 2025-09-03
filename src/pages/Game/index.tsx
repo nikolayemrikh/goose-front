@@ -41,6 +41,17 @@ export const GameInner: FC<{
 }> = ({ game, gameUpdatedTs }) => {
   const id = game.id;
 
+  const gameSummaryQuery = useQuery({
+    queryKey: ['rpc.authenticated.gameSummary', id],
+    queryFn: () => rpc.authenticated.gameSummary({ gameId: id }),
+    select: (res) => {
+      if (res.status === 'unauthorized') throw new Error('Anauthorized');
+      return res.data;
+    },
+    // @TODO fix enum usage
+    enabled: game.status === 'completed',
+  });
+
   const queryClient = useQueryClient();
   useEffect(() => {
     const currentTime = Date.now();
@@ -139,7 +150,7 @@ export const GameInner: FC<{
           {/* @TODO fix enum usage */}
           {game.status === 'cooldown' && (
             <Typography>
-              Seconds to start: <Timer timestamp={new Date(game.startAt).getTime()} />. Wait for the goose to appear..
+              Seconds to start: <Timer timestamp={new Date(game.startAt).getTime()} />
             </Typography>
           )}
           {/* @TODO fix enum usage */}
@@ -149,6 +160,10 @@ export const GameInner: FC<{
             </Typography>
           )}
 
+          <Typography>Total score: {gameSummaryQuery.data?.totalScore}</Typography>
+          <Typography>
+            Winner: {gameSummaryQuery.data?.winnerUsername || 'There is no winner, goose is alive...'}
+          </Typography>
           <Typography>Score: {ownScoreQuery.data?.score}</Typography>
 
           <Stack justifyContent="center" alignItems="center">
