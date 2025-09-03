@@ -5,7 +5,7 @@ import { rpc } from '@app/rpc';
 import { IGame } from '@app/rpc-types/authenticated/game/types';
 import { ArrowBackRounded } from '@mui/icons-material';
 import { Box, Button, CircularProgress, Paper, Stack, Typography } from '@mui/material';
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FC, useEffect, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { GAME_ID_PARAM } from './constants';
@@ -81,6 +81,15 @@ export const GameInner: FC<{
     };
   }, [game, id, gameUpdatedTs, queryClient.refetchQueries]);
 
+  const ownScoreQuery = useQuery({
+    queryKey: ['rpc.authenticated.ownScore', id],
+    queryFn: () => rpc.authenticated.ownScore({ gameId: id }),
+    select: (res) => {
+      if (res.status === 'unauthorized') throw new Error('Anauthorized');
+      return res.data;
+    },
+  });
+
   const createTapMutation = useMutation({
     mutationFn: () => rpc.authenticated.createTap({ gameId: id }),
     onSuccess: (res) => {
@@ -88,7 +97,7 @@ export const GameInner: FC<{
       const status = res.data.status;
       switch (status) {
         case 'created': {
-          //ok
+          ownScoreQuery.refetch();
           break;
         }
         case 'not-found': {
@@ -127,32 +136,39 @@ export const GameInner: FC<{
           </Stack>
 
           <Typography>Status: {StatusTitle[game.status]}</Typography>
+          {/* @TODO fix enum usage */}
           {game.status === 'cooldown' && (
             <Typography>
               Seconds to start: <Timer timestamp={new Date(game.startAt).getTime()} />. Wait for the goose to appear..
             </Typography>
           )}
+          {/* @TODO fix enum usage */}
           {game.status === 'in-progress' && (
             <Typography>
               Seconds to end: <Timer timestamp={new Date(game.endAt).getTime()} />. Tap faster!
             </Typography>
           )}
-          {game.status === 'in-progress' && (
-            <Stack justifyContent="center" alignItems="center">
-              <Box
-                onClick={() => createTapMutation.mutate()}
-                sx={{
-                  cursor: 'pointer',
-                  userSelect: 'none',
-                  '&:active': {
-                    transform: 'rotate(-20deg)',
-                  },
-                }}
-              >
-                <img src={gooseImg} width={255} height={366} style={{ userSelect: 'none' }} />
-              </Box>
-            </Stack>
-          )}
+
+          <Typography>Score: {ownScoreQuery.data?.score}</Typography>
+
+          <Stack justifyContent="center" alignItems="center">
+            <Box
+              onClick={() => {
+                // @TODO fix enum usage
+                if (game.status !== 'in-progress') return;
+                createTapMutation.mutate();
+              }}
+              sx={{
+                cursor: 'pointer',
+                userSelect: 'none',
+                '&:active': {
+                  transform: 'rotate(-20deg)',
+                },
+              }}
+            >
+              <img src={gooseImg} width={255} height={366} style={{ userSelect: 'none' }} />
+            </Box>
+          </Stack>
         </Stack>
       </Paper>
     </Stack>
@@ -165,10 +181,12 @@ export const Game: FC = () => {
   const gameQuery = useQuery({
     queryKey: getGameQueryKey(id),
     queryFn: () => rpc.authenticated.game({ gameId: id }),
-    placeholderData: keepPreviousData,
+    select: (res) => {
+      if (res.status === 'unauthorized') throw new Error('Anauthorized');
+      return res.data;
+    },
   });
-  const gameData = gameQuery.data?.status === 'authorized' ? gameQuery.data.data : null;
-  if (!gameData)
+  if (!gameQuery.data) {
     return (
       <PageMain>
         <Stack direction="column" justifyContent="center" alignItems="center" flexGrow={1}>
@@ -176,11 +194,12 @@ export const Game: FC = () => {
         </Stack>
       </PageMain>
     );
-  if (gameData?.status === 'not-found') return <Navigate to={routes.root} />;
+  }
+  if (gameQuery.data.status === 'not-found') return <Navigate to={routes.root} />;
 
   return (
     <PageMain>
-      <GameInner game={gameData.game} gameUpdatedTs={gameQuery.dataUpdatedAt} />
+      <GameInner game={gameQuery.data.game} gameUpdatedTs={gameQuery.dataUpdatedAt} />
     </PageMain>
   );
 };

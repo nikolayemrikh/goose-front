@@ -22,6 +22,10 @@ export const Root: FC = () => {
     queryKey: ['rpc.authenticated.games', gamesParams],
     queryFn: () => rpc.authenticated.games(gamesParams),
     placeholderData: keepPreviousData,
+    select: (res) => {
+      if (res.status === 'unauthorized') throw new Error('Anauthorized');
+      return res.data;
+    },
   });
 
   const hasPermissionCreateGameQuery = useQuery({
@@ -35,8 +39,7 @@ export const Root: FC = () => {
     select: (res) => res.data?.success,
   });
 
-  const gamesData = gamesQuery.data;
-  const games = gamesData?.status === 'authorized' ? gamesData.data.games : null;
+  const games = gamesQuery.data?.games;
 
   const createGameMutation = useMutation({
     mutationFn: () => rpc.authenticated.createGame(),
